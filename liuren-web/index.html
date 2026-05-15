@@ -48,6 +48,8 @@
   .fg-金 { color: var(--metal); }
   .fg-水 { color: var(--water); }
   .board-cell.self { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .board-cell { cursor: pointer; }
+  .board-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
   .tag { position:absolute; top:8px; right:8px; font-size:10px; color:#fff; background:#394b6b; padding:2px 6px; border-radius:999px; opacity:0.9; }
 
   /* 五行轻度着色（背景叠加） */
@@ -71,7 +73,7 @@
 </style>
 </head>
 <body>
-  <header>江氏小六壬排盘（网页版）</header>
+  <header>小六壬排盘</header>
 
   <div class="container">
     <div class="card">
@@ -104,13 +106,18 @@
         <div id="boardGrid" class="board-grid"></div>
       </div>
       <div class="card">
-        <div id="summary" class="grid"></div>
+        <div class="card" style="margin-top:8px">
+          <div id="detailPanel">
+            <div class="hint">请选择左侧任一宫位查看“六亲 / 六神 / 五星”详解。</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="footer">
-    该网页由茯苓酱肉包提供 版本号V1.1
+    该网页由茯苓酱肉包提供  有问题请反馈至fy_djj@outlook.com<br/>
+    版本号V2
   </div>
 
   <script>
@@ -124,7 +131,42 @@
     const ZHI_WUXING = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' };
 
     const SIX_GODS = ['青龙','朱雀','勾陈','白虎','玄武','螣蛇'];
-    const SIX_STARS = ['木星','火星','土星','金星','水星','天空'];
+    const FIVE_STARS = ['木星','火星','土星','金星','水星','天空'];
+
+    const DETAIL_TXT = {
+      六宫: {
+        大安: '大安事事昌，求财在坤方，失物去不远，宅舍保安康；配震卦，五行木，为青/绿色，为东方，为长男，数为147。主安静、不动、稳定、吉祥、顺利。',
+        留连: '留恋事难成，求谋日未明，官事只宜缓，去者未回程；配坎卦，五行水，为黑/蓝色，为北方，为中男，数为258。主暧昧不明，隐情、牵连、拖延、反复、不确定。',
+        速喜: '速喜喜来临，求财向南行，失物申未午，逢人路上寻；配离卦，五行火，为红/紫色，为南方，为中女，数为369。主快速、喜庆、主动、时机已到、久不宜。',
+        赤口: '赤口主口舌，官非切要防，失物急去寻，行人有惊慌；配乾兑卦，五行金，为白/银色，为西方/西北方，为少女/老男，数为147。主不顺、坎坷、牵绊、惊吓、凶险、伤害、口舌、纠纷。',
+        小吉: '小吉最吉昌，路上好商量，阴人来报信，失物在坤方；配巽卦，五行木，为青/绿色，为东南方，为长女，数为258。为六合，主和睦、和谐、吉利、顺当、桃花。',
+        空亡: '空亡事不祥，阴人多乖张，求财无利益，行人有灾殃；配坤艮卦，五行土，为黄色，为西南方/东北方，为老女/少男，数为369。主不吉、不实、忧虑、空虚、没有、消散、无结果。'
+      },
+      六亲: {
+        自身: '代表自身、本人、主体。',
+        兄弟: '代表兄妹、同事、朋友、同学、战友、同行、同类、同源、合作、竞争等。',
+        子孙: '代表孩子、晚辈、学生、客户、宠物、娱乐、享受、僧尼道、医药、医生、医院、警察、军人等。',
+        妻财: '代表妻子、金钱、工资、珠宝、财物、资产、佣人、员工等。',
+        父母: '代表长辈、贵人、文化、知识、学习、学业、信息、文书、证件、工作、单位、交通工具、房屋、服装等。',
+        官鬼: '代表丈夫、领导、法官、工作、升职、考试、技术、是非、官司、疾病、灾祸、罪犯、地痞、流氓等。',
+      },
+      六神: {
+        青龙: '五行木，为东方。主喜庆、吉利、正义、喜事、好事、贵人、主新，能逢凶化吉；主酒色财气、桃花、感情。',
+        朱雀: '五行火，为南方。主表达、口舌官非，人事纠纷；主通讯、信息、文书、文化。',
+        勾陈: '五行土，为中间。主牵连、勾连、多人参与、阻力、慢；主旧、老的、过去的；主阴宅、为坟墓。',
+        白虎: '五行金，为西方。主凶猛、斗争、伤灾、破坏、官司、横祸、惊吓；主刀、主血；主偏财、横财，代表实力、强势。',
+        玄武: '五行水、为北方。主骗子，小人，盗贼、欺诈、贪婪、爱财；主虚假，不真实、暧昧不明、隐私之事。代表轻浮，华而不实、无信誉，明一套暗一套；主情欲、贪色、男女私情。',
+        螣蛇: '五行土，为中间。主虚空少实、不真实、猜忌多疑、虚情假意、有心机、变来变去、为小人；代表细长之物、弯曲之物；代表套住、捆住、牵连。',
+      },
+      五星: {
+        土星: '凶星，谋事受阻，凡事拖延，防止小人，出行不利。',
+        火星: '凶星，女人多灾难，男人不利行。安分守己，防止口舌是非。',
+        木星: '吉星，凡事勿急，好事自成。和顺吉祥，家宅安宁。',
+        金星: '凶星，性情刚烈，求谋难成，宜生灾祸，凡事谨慎',
+        水星: '吉星，男人多福，女人安宁，办事遂心，添人进财。',
+        天空: '主空虚、不实、变化。',
+      }
+    };
 
     // 六神对应五行
     const GOD_WUXING = { '青龙':'木','朱雀':'火','勾陈':'土','螣蛇':'土','白虎':'金','玄武':'水' };
@@ -338,18 +380,18 @@
       return gods;
     }
 
-    // —— 六星：以“日落宫”为木星起点，顺时针排 —— //
-    function calcSixStars(dayPalaceIdx){
+    // —— 五星：以“日落宫”为木星起点，顺时针排 —— //
+    function calcFiveStars(dayPalaceIdx){
       const stars = new Map();
       for (let i=0;i<6;i++){
         const palace = PALACES[(dayPalaceIdx + i) % 6];
-        stars.set(palace, SIX_STARS[i]);
+        stars.set(palace, FIVE_STARS[i]);
       }
       return stars;
     }
 
     // —— 渲染：2×3 网格六宫盘（左下大安起，顺时针） —— //
-    function renderBoardGrid(payload, timeIdx){
+    function renderBoardGrid(payload, timeIdx, onSelect){
       const { zhiMap, liuQinMap, liuShenMap, liuXingMap } = payload;
       const el = document.getElementById('boardGrid');
       el.innerHTML = '';
@@ -376,6 +418,7 @@
 
         const cell = document.createElement('div');
         cell.className = `board-cell wx-${wx}` + (palace===selfPalace ? ' self' : '');
+        cell.dataset.palace = palace;
         cell.style.gridRowStart = SLOTS[palace][0];
         cell.style.gridColumnStart = SLOTS[palace][1];
         cell.innerHTML = `
@@ -384,7 +427,7 @@
           <div class="line">地支：<span class="zhi-pill pill-${zhiWx}">${zhi}</span>（<span class="fg-${zhiWx}">${zhiWx}</span>）</div>
           <div class="line liuqin">六亲：${liuqin}</div>
           <div class="line">六神：<span class="fg-${GOD_WUXING[god]}">${god}</span></div>
-          <div class="line">六星：${star}</div>
+          <div class="line">五星：${star}</div>
         `;
         if (palace===selfPalace){
           const tag = document.createElement('div');
@@ -392,38 +435,50 @@
           tag.textContent='身宫';
           cell.appendChild(tag);
         }
+        cell.addEventListener('click', ()=> onSelect && onSelect(palace));
         el.appendChild(cell);
       }
     }
 
-    function renderSummary(payload){
-      const { zhiMap, liuQinMap, liuShenMap, liuXingMap } = payload;
-      const el = document.getElementById('summary');
-      el.innerHTML = '';
-      for (const palace of PALACES){
-        const wx = PALACE_WUXING[palace];
-        const zhi = zhiMap.get(palace);
-        const liuqin = liuQinMap.get(palace);
-        const god = liuShenMap.get(palace);
-        const star = liuXingMap.get(palace);
-        const item = document.createElement('div');
-        item.className='item';
-        item.innerHTML = `
-          <h4>${palace}（五行${wx}）</h4>
-          <div class="line">地支：<span class="zhi-pill pill-${ZHI_WUXING[zhi]}">${zhi}</span>（<span class="fg-${ZHI_WUXING[zhi]}">${ZHI_WUXING[zhi]}</span>）</div>
-          <div class="line liuqin">六亲：${liuqin}</div>
-          <div class="line">六神：<span class="fg-${GOD_WUXING[god]}">${god}</span></div>
-          <div class="line">六星：${star}</div>
-        `;
-        el.appendChild(item);
-      }
-    }
 
     // —— 主流程：收集输入→换算→计算→渲染 —— //
     function run(){
       const dtInput = document.getElementById('dt');
       const nInput = document.getElementById('numberN');
       const mode = document.getElementById('hourMode').value;
+
+      function setSelected(palace){
+        document.querySelectorAll('.board-cell').forEach(el=> el.classList.remove('selected'));
+        const cell = document.querySelector(`.board-cell[data-palace="${palace}"]`);
+        if (cell) cell.classList.add('selected');
+      }
+
+      function renderDetail(palace, payload){
+        const { zhiMap, liuQinMap, liuShenMap, liuXingMap } = payload;
+        const zhi = zhiMap.get(palace);
+        const liuqin = liuQinMap.get(palace);
+        const liushen = liuShenMap.get(palace);
+        const liuxing = liuXingMap.get(palace);
+        const panel = document.getElementById('detailPanel');
+        const liuqinTxt = DETAIL_TXT['六亲'][liuqin] || '';
+        const liushenTxt = DETAIL_TXT['六神'][liushen] || '';
+        const liuxingTxt = DETAIL_TXT['五星'][liuxing] || '';
+        const gongTxt = (DETAIL_TXT['六宫'] && DETAIL_TXT['六宫'][palace]) ? DETAIL_TXT['六宫'][palace] : '';
+        panel.innerHTML = `
+          <div class="item">
+            <h4>${palace} · 详情</h4>
+            <div class="line">地支：<span class="zhi-pill pill-${ZHI_WUXING[zhi]}">${zhi}</span>（<span class="fg-${ZHI_WUXING[zhi]}">${ZHI_WUXING[zhi]}</span>）</div>
+            <div class="line" style="margin-top:6px"><b>六宫：${palace}（五行${PALACE_WUXING[palace]}）</b></div>
+            <div class="line">${gongTxt || '（六宫详解待补充）'}</div>
+            <div class="line" style="margin-top:6px"><b>六亲：${liuqin}</b></div>
+            <div class="line">${liuqinTxt}</div>
+            <div class="line" style="margin-top:6px"><b>六神：${liushen}</b></div>
+            <div class="line">${liushenTxt}</div>
+            <div class="line" style="margin-top:6px"><b>五星：${liuxing}</b></div>
+            <div class="line">${liuxingTxt}</div>
+          </div>
+        `;
+      }
 
       if (!dtInput.value) {
         alert('请选择公历日期时间');
@@ -466,13 +521,16 @@
       // 六神盘
       const liuShenMap = calcSixGods(hourZhi);
 
-      // 六星盘
-      const liuXingMap = calcSixStars(dayIdx);
+      // 五星盘
+      const liuXingMap = calcFiveStars(dayIdx);
 
       // 渲染 2×3 网格与右侧摘要
       const payload = { zhiMap, liuQinMap, liuShenMap, liuXingMap };
-      renderBoardGrid(payload, timeIdx);
-      renderSummary(payload);
+      const onSelect = (palace)=>{ setSelected(palace); renderDetail(palace, payload); };
+      renderBoardGrid(payload, timeIdx, onSelect);
+      // 默认选中身宫
+      setSelected(selfPalace);
+      renderDetail(selfPalace, payload);
     }
 
     // 绑定
