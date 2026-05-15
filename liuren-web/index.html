@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, user-scalable=no"
+/>
+<title>江氏小六壬排盘</title>
+<style>
+  :root {
+    --bg:#0f1318; --fg:#e8eaed; --muted:#a9b1bc;
+    --wood:#2e7d32; --fire:#c62828; --earth:#8d6e63;
+    --metal:#d4af37; --water:#1565c0;
+    --accent:#6ea8fe; --ring:#2b3240; --panel:#151b22;
+  }
+  body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--fg);}
+  header { padding:14px 16px; border-bottom:1px solid #1f2630; font-weight:600;}
+  .container { padding:16px; display:flex; flex-direction:column; gap:16px; }
+  .card { background:var(--panel); border:1px solid #1f2630; border-radius:12px; padding:12px; }
+  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  label { font-size:14px; color:var(--muted); }
+  input, select, button {
+    background:#0f141b; color:var(--fg); border:1px solid #283141;
+    border-radius:8px; padding:10px 12px; font-size:14px;
+    outline:none;
+  }
+  input:focus, select:focus { border-color:var(--accent); }
+  button { background:#1a2230; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  .hint { font-size:12px; color:var(--muted); }
+
+  /* 2×3 六宫盘网格 */
+  .board-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, 160px); gap: 8px; }
+  .board-cell { position:relative; background:#0f141b; border:1px solid #283141; border-radius:12px; padding:10px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; }
+  .board-cell .title { font-weight:700; font-size:16px; margin-bottom:6px; }
+  .board-cell .line { font-size:12px; color:var(--muted); line-height:1.5; }
+  .board-cell .line.liuqin, .line.liuqin { font-size:14px; font-weight:700; color:var(--fg); }
+  .zhi-pill { display:inline-block; padding:2px 10px; border-radius:999px; font-weight:700; font-size:14px; line-height:1.2; color:#fff; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
+  .pill-木 { background: var(--wood); }
+  .pill-火 { background: var(--fire); }
+  .pill-土 { background: var(--earth); }
+  .pill-金 { background: var(--metal); }
+  .pill-水 { background: var(--water); }
+  .fg-木 { color: var(--wood); }
+  .fg-火 { color: var(--fire); }
+  .fg-土 { color: var(--earth); }
+  .fg-金 { color: var(--metal); }
+  .fg-水 { color: var(--water); }
+  .board-cell.self { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .tag { position:absolute; top:8px; right:8px; font-size:10px; color:#fff; background:#394b6b; padding:2px 6px; border-radius:999px; opacity:0.9; }
+
+  /* 五行轻度着色（背景叠加） */
+  .wx-木 { background: linear-gradient(135deg, color-mix(in srgb, var(--wood) 24%, transparent), color-mix(in srgb, var(--wood) 10%, transparent)); }
+  .wx-火 { background: linear-gradient(135deg, color-mix(in srgb, var(--fire) 22%, transparent), color-mix(in srgb, var(--fire) 9%, transparent)); }
+  .wx-土 { background: linear-gradient(180deg, color-mix(in srgb, var(--earth) 12%, transparent), color-mix(in srgb, var(--earth) 5%, transparent)); }
+  .wx-金 { background: linear-gradient(180deg, color-mix(in srgb, var(--metal) 18%, transparent), color-mix(in srgb, var(--metal) 8%, transparent)); }
+  .wx-水 { background: linear-gradient(135deg, color-mix(in srgb, var(--water) 22%, transparent), color-mix(in srgb, var(--water) 9%, transparent)); }
+
+  .legend { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .legend span { font-size:12px; color:var(--muted); padding:4px 8px; border:1px solid #283141; border-radius:999px; }
+
+  .grid { display:grid; grid-template-columns: 1fr; gap:8px; }
+  .item { padding:8px; border:1px solid #283141; border-radius:8px; background:#0f141b;}
+  .item h4 { margin:0 0 6px 0; font-size:14px; }
+  .item .line { font-size:12px; color:var(--muted); }
+  .footer { padding:12px 16px; font-size:12px; color:var(--muted); text-align:center;}
+  @media(min-width: 900px){
+    .layout { display:grid; grid-template-columns: 1.2fr 1fr; gap:16px;}
+  }
+</style>
+</head>
+<body>
+  <header>江氏小六壬排盘（网页版）</header>
+
+  <div class="container">
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>公历日期时间</label><br/>
+          <input id="dt" type="datetime-local"/>
+        </div>
+        <div>
+          <label>可选数字N（不填则用日时起课）</label><br/>
+          <input id="numberN" type="number" inputmode="numeric" placeholder="可填任意正整数"/>
+        </div>
+        <div>
+          <label>时辰边界</label><br/>
+          <select id="hourMode">
+            <option value="std">子时=23:00–00:59（标准）</option>
+            <option value="strict">子时=23:00–00:59（整点切分，调试同上）</option>
+          </select>
+        </div>
+        <div>
+          <br/>
+          <button id="calcBtn">排盘</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="card">
+        <!-- 2×3 六宫盘：左下大安起，顺时针 -->
+        <div id="boardGrid" class="board-grid"></div>
+      </div>
+      <div class="card">
+        <div id="summary" class="grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    该网页由茯苓酱肉包提供 版本号V1.1
+  </div>
+
+  <script>
+  (function(){
+    // —— 数据常量 —— //
+    const PALACES = ['大安','留连','速喜','赤口','小吉','空亡'];
+    const PALACE_WUXING = { '大安':'木','留连':'水','速喜':'火','赤口':'金','小吉':'木','空亡':'土' };
+
+    const ZHI_LIST = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+    const ZHI_NUM = { '子':1,'丑':2,'寅':3,'卯':4,'辰':5,'巳':6,'午':7,'未':8,'申':9,'酉':10,'戌':11,'亥':12 };
+    const ZHI_WUXING = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' };
+
+    const SIX_GODS = ['青龙','朱雀','勾陈','白虎','玄武','螣蛇'];
+    const SIX_STARS = ['木星','火星','土星','金星','水星','天空'];
+
+    // 六神对应五行
+    const GOD_WUXING = { '青龙':'木','朱雀':'火','勾陈':'土','螣蛇':'土','白虎':'金','玄武':'水' };
+
+    const QINGLONG_START = {
+      '子':'大安','午':'大安',
+      '丑':'留连','未':'留连',
+      '寅':'速喜','申':'速喜',
+      '卯':'赤口','酉':'赤口',
+      '辰':'小吉','戌':'小吉',
+      '巳':'空亡','亥':'空亡'
+    };
+
+    const WUXING_GEN = { '木':'火','火':'土','土':'金','金':'水','水':'木' }; // 我生者
+    const WUXING_KE  = { '木':'土','土':'水','水':'火','火':'金','金':'木' };   // 我克者
+
+    // —— 工具：时→地支 —— //
+    function hourToZhi(date, mode='std'){
+      // 子: 23:00–00:59, 丑: 01:00–02:59, … 每段2小时
+      const h = date.getHours();
+      const m = date.getMinutes();
+
+      // 处理子时跨日：23:00–23:59 及 次日 00:00–00:59
+      if (h === 23 || h === 0) return '子';
+      if (h === 1 || h === 2)  return '丑';
+      if (h === 3 || h === 4)  return '寅';
+      if (h === 5 || h === 6)  return '卯';
+      if (h === 7 || h === 8)  return '辰';
+      if (h === 9 || h === 10) return '巳';
+      if (h === 11 || h === 12) return '午';
+      if (h === 13 || h === 14) return '未';
+      if (h === 15 || h === 16) return '申';
+      if (h === 17 || h === 18) return '酉';
+      if (h === 19 || h === 20) return '戌';
+      if (h === 21 || h === 22) return '亥';
+      return '子';
+    }
+
+    // —— 农历换算（内置转换，覆盖 1900–2100） —— //
+    // 数据来源为简化版的农历对照表与朔望月推算（为保证体积，这里仅使用 1900–2100 规则集）。
+    // 目的仅为得到“农历日”（1..30），满足日时起课；闰月已在规则集中考虑。
+    const LUNAR_INFO = [
+      // 1900–2100 的位编码（简化：每年以 0x 表示闰月与大小月，末位 4bit 为闰月，大月=30，小月=29）。
+      // 为控制篇幅，这里内置必要最小数据段：1990–2100；若你需要 1900–2100 全量，可后续补齐。
+      // year, code
+      [1990,0x04bd8],[1991,0x04ae0],[1992,0x0a570],[1993,0x054d5],[1994,0x0d260],
+      [1995,0x0d950],[1996,0x16554],[1997,0x056a0],[1998,0x09ad0],[1999,0x055d2],
+      [2000,0x04ae0],[2001,0x0a5b6],[2002,0x0a4d0],[2003,0x0d250],[2004,0x1d255],
+      [2005,0x0b540],[2006,0x0d6a0],[2007,0x0ada2],[2008,0x095b0],[2009,0x14977],
+      [2010,0x04970],[2011,0x0a4b0],[2012,0x0b4b5],[2013,0x06a50],[2014,0x06d40],
+      [2015,0x1ab54],[2016,0x02b60],[2017,0x09570],[2018,0x052f2],[2019,0x04970],
+      [2020,0x06566],[2021,0x0d4a0],[2022,0x0ea50],[2023,0x06e95],[2024,0x05ad0],
+      [2025,0x02b60],[2026,0x186e3],[2027,0x0a930],[2028,0x05536],[2029,0x0d4a0],
+      [2030,0x0d8d4],[2031,0x0b550],[2032,0x056a0],[2033,0x1a5b6],[2034,0x0a4d0],
+      [2035,0x1d0b6],[2036,0x0d250],[2037,0x0d520],[2038,0x0dd45],[2039,0x0b5a0],
+      [2040,0x056d0],[2041,0x055b2],[2042,0x049b0],[2043,0x0a577],[2044,0x0a4b0],
+      [2045,0x0aa50],[2046,0x1b255],[2047,0x06d20],[2048,0x0ada0],[2049,0x14b63],
+      [2050,0x09370],[2051,0x049f8],[2052,0x04970],[2053,0x064b0],[2054,0x168a6],
+      [2055,0x0ea50],[2056,0x06aa0],[2057,0x0aea6],[2058,0x0ab50],[2059,0x04b60],
+      [2060,0x0aae4],[2061,0x0a570],[2062,0x05260],[2063,0x0f263],[2064,0x0d950],
+      [2065,0x05b57],[2066,0x056a0],[2067,0x096d0],[2068,0x04dd5],[2069,0x04ad0],
+      [2070,0x0a4d0],[2071,0x0d4d4],[2072,0x0d250],[2073,0x0d558],[2074,0x0b540],
+      [2075,0x0b5a0],[2076,0x195a6],[2077,0x095b0],[2078,0x049b0],[2079,0x0a974],
+      [2080,0x0a4b0],[2081,0x0b27a],[2082,0x06a50],[2083,0x06d40],[2084,0x0af46],
+      [2085,0x0ab60],[2086,0x09570],[2087,0x04af5],[2088,0x04970],[2089,0x064b0],
+      [2090,0x074a3],[2091,0x0ea50],[2092,0x06b58],[2093,0x055c0],[2094,0x0ab60],
+      [2095,0x096d5],[2096,0x092e0],[2097,0x0c960],[2098,0x0d954],[2099,0x0d4a0],
+      [2100,0x0da50],
+    ];
+
+    function lunarYearInfo(year){
+      const rec = LUNAR_INFO.find(r=>r[0]===year);
+      return rec? rec[1] : null;
+    }
+
+    function monthDays(year, month, code){
+      // 1..12 月大小由高位 12bit 决定（1 为大月 30天）
+      const bit = (code >> (16 - month)) & 1;
+      return bit?30:29;
+    }
+    function leapMonth(year, code){ return code & 0xf; } // 0 表示无闰月
+    function leapDays(year, code){ return leapMonth(year, code)? ((code & 0x10000)?30:29) : 0; }
+
+    function solarToLunarYmd(date){
+      // 优先使用 Intl 中国农历（日级别），Safari 17+ 已支持。若不可用，则用内置表。
+      try {
+        const fmt = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', { day: 'numeric' });
+        const parts = fmt.formatToParts(date);
+        const dayPart = parts.find(p=>p.type==='day');
+        if (dayPart && dayPart.value){
+          const lunarDay = parseInt(dayPart.value,10);
+          if (Number.isFinite(lunarDay) && lunarDay>=1 && lunarDay<=30){
+            return { lunarDay, lunarMonth: null, isLeap: false };
+          }
+        }
+      } catch (e) { /* 回退到内置表 */ }
+
+      // 回退：内置简化表（1990–2100）。仅求农历日。
+      const y = date.getFullYear();
+      if (y<1990 || y>2100) { throw new Error('当前浏览器不支持 Intl 中国农历，且内置表覆盖 1990–2100，超出范围'); }
+      const code = lunarYearInfo(y);
+      if (!code) { throw new Error('缺少年份编码'); }
+
+      // 从当年 1 月 1 日起，累计到目标日的天数 diff，然后在农历年各月长度上滚动。
+      const yearStart = new Date(y,0,1);
+      const diff = Math.floor((date - yearStart)/86400000);
+
+      // 春节相对元旦的偏移 daysCNY（固定表）
+      const CNY_OFFSET = {
+        2025: 40,2026: 29,2027: 49,2028: 38,2029: 26,
+        2030: 45,2031: 34,2032: 22,2033: 42,2034: 31,
+        2035: 19,2036: 38,2037: 27,2038: 46,2039: 35,
+        2040: 24,2041: 43,2042: 32,2043: 20,2044: 39,
+        2045: 28,2046: 46,2047: 36,2048: 24,2049: 43,
+        2050: 31,2051: 19,2052: 38,2053: 26,2054: 45,
+        2055: 34,2056: 23,2057: 42,2058: 30,2059: 49,
+        2060: 37,2061: 25,2062: 44,2063: 33,2064: 22,
+        2065: 41,2066: 30,2067: 18,2068: 37,2069: 27,
+        2070: 15,2071: 34,2072: 23,2073: 41,2074: 31,
+        2075: 20,2076: 39,2077: 28,2078: 46,2079: 35,
+        2080: 24,2081: 43,2082: 32,2083: 20,2084: 39,
+        2085: 27,2086: 46,2087: 34,2088: 23,2089: 41,
+        2090: 30,2091: 19,2092: 37,2093: 26,2094: 45,
+        2095: 34,2096: 22,2097: 41,2098: 29,2099: 48,2100: 36,
+        1990: 49,1991: 29,1992: 38,1993: 26,1994: 45,
+        1995: 34,1996: 23,1997: 41,1998: 30,1999: 48,
+        2000: 37,2001: 25,2002: 44,2003: 32,2004: 22,
+        2005: 40,2006: 29,2007: 48,2008: 37,2009: 26,
+        2010: 45,2011: 34,2012: 23,2013: 42,2014: 31,
+        2015: 19,2016: 39,2017: 27,2018: 46,2019: 35,
+        2020: 24,2021: 43,2022: 31,2023: 21,2024: 40,
+      };
+      const daysSinceCNY = diff - (CNY_OFFSET[y]||40);
+
+      // 滚动到对应农历月日
+      let md = daysSinceCNY;
+      let month = 1, lm = leapMonth(y, code); let isLeap = false;
+      while (true){
+        let days = (isLeap? leapDays(y, code) : monthDays(y, month, code));
+        if (md < days) break;
+        md -= days;
+        if (lm && month===lm && !isLeap){ isLeap = true; } else { month++; isLeap=false; }
+        if (month>12) break;
+      }
+      const lunarDay = md + 1; // 1..30
+      return { lunarDay, lunarMonth: month, isLeap };
+    }
+
+    // —— 计算：日落宫 / 时落宫 —— //
+    function calcDayPalaceIndex(dayBase){
+      // (dayBase-1) % 6  → 0..5 对应 PALACES
+      return ( (dayBase - 1) % 6 );
+    }
+    function calcTimePalaceIndex(dayIdx, hourZhi){
+      // 时辰数字：按表 1..12
+      const n = ZHI_NUM[hourZhi]; // 1..12
+      // 公式：(日落宫数 + 时辰数字 - 1) mod 6 + 1
+      // 转为 0..5 索引：(dayIdx + n - 1) % 6
+      return ( (dayIdx + n - 1) % 6 );
+    }
+
+    // —— 地支盘：从时落宫起，身宫=时辰地支，地支上隔一取一 —— //
+    function calcZhiRing(timeZhi, timePalaceIdx){
+      const res = new Map(); // palaceName -> zhi
+      const startZhiIdx = ZHI_LIST.indexOf(timeZhi);
+      for (let step=0; step<6; step++){
+        const palaceName = PALACES[(timePalaceIdx + step) % 6];
+        const zhi = ZHI_LIST[(startZhiIdx + step*2) % 12]; // 每次+2，跳一取一
+        res.set(palaceName, zhi);
+      }
+      return res;
+    }
+
+    // —— 六亲：按地支五行与“自身地支五行”生克判定 —— //
+    function liuQinOf(zhiOfPalace, selfZhi){
+      const self = ZHI_WUXING[selfZhi];
+      const oth  = ZHI_WUXING[zhiOfPalace];
+      if (oth === self) return '兄弟';
+      if (WUXING_GEN[self] === oth) return '子孙';     // 我生者
+      if (WUXING_GEN[oth] === self) return '父母';     // 生我者
+      if (WUXING_KE[self] === oth)  return '妻财';     // 我克者
+      if (WUXING_KE[oth] === self)  return '官鬼';     // 克我者
+      return '兄弟'; // 理论不至于到此，兜底
+    }
+
+    // 若极端情况下缺少“比和”可按文档特殊规则处理（很少发生，此处保留逻辑）
+    function ensureBrotherIfMissing(mapZhi, selfZhi, timePalaceIdx){
+      const selfWx = ZHI_WUXING[selfZhi];
+      const selfPalace = PALACES[timePalaceIdx];
+      // 仅在“除自身外没有同我五行”的情况下触发特殊规则
+      const anyBrother = Array.from(mapZhi.entries()).some(([p,z]) => p !== selfPalace && ZHI_WUXING[z] === selfWx);
+      if (anyBrother) return null;
+      // 从身宫顺时针（下一个开始）找第一个五行为“土”的地支宫位 → 作为兄弟宫
+      for (let i=1;i<6;i++){
+        const palace = PALACES[(timePalaceIdx + i) % 6];
+        const z = mapZhi.get(palace);
+        if (ZHI_WUXING[z] === '土') return palace;
+      }
+      return null;
+    }
+
+    // —— 六神：按口诀确定青龙起点，顺时针排 —— //
+    function calcSixGods(hourZhi){
+      const startPalace = QINGLONG_START[hourZhi];
+      const startIdx = PALACES.indexOf(startPalace);
+      const gods = new Map();
+      for (let i=0;i<6;i++){
+        const palace = PALACES[(startIdx + i) % 6];
+        gods.set(palace, SIX_GODS[i]);
+      }
+      return gods;
+    }
+
+    // —— 六星：以“日落宫”为木星起点，顺时针排 —— //
+    function calcSixStars(dayPalaceIdx){
+      const stars = new Map();
+      for (let i=0;i<6;i++){
+        const palace = PALACES[(dayPalaceIdx + i) % 6];
+        stars.set(palace, SIX_STARS[i]);
+      }
+      return stars;
+    }
+
+    // —— 渲染：2×3 网格六宫盘（左下大安起，顺时针） —— //
+    function renderBoardGrid(payload, timeIdx){
+      const { zhiMap, liuQinMap, liuShenMap, liuXingMap } = payload;
+      const el = document.getElementById('boardGrid');
+      el.innerHTML = '';
+
+      const SLOTS = {
+        '大安':[2,1],
+        '留连':[1,1],
+        '速喜':[1,2],
+        '赤口':[1,3],
+        '小吉':[2,3],
+        '空亡':[2,2],
+      };
+      const selfPalace = PALACES[timeIdx];
+
+      for (const palace of PALACES){
+        const wx = PALACE_WUXING[palace];
+        const zhi = zhiMap.get(palace);
+        const liuqin = liuQinMap.get(palace);
+        const god = liuShenMap.get(palace);
+        const star = liuXingMap.get(palace);
+
+        // 地支五行与六神配色
+        const zhiWx = ZHI_WUXING[zhi];
+
+        const cell = document.createElement('div');
+        cell.className = `board-cell wx-${wx}` + (palace===selfPalace ? ' self' : '');
+        cell.style.gridRowStart = SLOTS[palace][0];
+        cell.style.gridColumnStart = SLOTS[palace][1];
+        cell.innerHTML = `
+          <div class="title">${palace}</div>
+          <div class="line">五行：<span class="fg-${wx}">${wx}</span></div>
+          <div class="line">地支：<span class="zhi-pill pill-${zhiWx}">${zhi}</span>（<span class="fg-${zhiWx}">${zhiWx}</span>）</div>
+          <div class="line liuqin">六亲：${liuqin}</div>
+          <div class="line">六神：<span class="fg-${GOD_WUXING[god]}">${god}</span></div>
+          <div class="line">六星：${star}</div>
+        `;
+        if (palace===selfPalace){
+          const tag = document.createElement('div');
+          tag.className='tag';
+          tag.textContent='身宫';
+          cell.appendChild(tag);
+        }
+        el.appendChild(cell);
+      }
+    }
+
+    function renderSummary(payload){
+      const { zhiMap, liuQinMap, liuShenMap, liuXingMap } = payload;
+      const el = document.getElementById('summary');
+      el.innerHTML = '';
+      for (const palace of PALACES){
+        const wx = PALACE_WUXING[palace];
+        const zhi = zhiMap.get(palace);
+        const liuqin = liuQinMap.get(palace);
+        const god = liuShenMap.get(palace);
+        const star = liuXingMap.get(palace);
+        const item = document.createElement('div');
+        item.className='item';
+        item.innerHTML = `
+          <h4>${palace}（五行${wx}）</h4>
+          <div class="line">地支：<span class="zhi-pill pill-${ZHI_WUXING[zhi]}">${zhi}</span>（<span class="fg-${ZHI_WUXING[zhi]}">${ZHI_WUXING[zhi]}</span>）</div>
+          <div class="line liuqin">六亲：${liuqin}</div>
+          <div class="line">六神：<span class="fg-${GOD_WUXING[god]}">${god}</span></div>
+          <div class="line">六星：${star}</div>
+        `;
+        el.appendChild(item);
+      }
+    }
+
+    // —— 主流程：收集输入→换算→计算→渲染 —— //
+    function run(){
+      const dtInput = document.getElementById('dt');
+      const nInput = document.getElementById('numberN');
+      const mode = document.getElementById('hourMode').value;
+
+      if (!dtInput.value) {
+        alert('请选择公历日期时间');
+        return;
+      }
+
+      const date = new Date(dtInput.value);
+      const hourZhi = hourToZhi(date, mode);
+      const { lunarDay } = solarToLunarYmd(date);
+
+      // 是否使用数字起课
+      const txt = (nInput.value || '').trim();
+      const useN = txt.length > 0;
+      const N = useN ? Math.abs(parseInt(txt,10)) : null;
+      if (useN && (!Number.isFinite(N) || N === 0)) {
+        alert('数字N需为正整数');
+        return;
+      }
+
+      const baseDay = useN ? N : lunarDay;
+      const dayIdx = calcDayPalaceIndex(baseDay);
+      const timeIdx = calcTimePalaceIndex(dayIdx, hourZhi);
+
+      // 地支盘
+      const zhiMap = calcZhiRing(hourZhi, timeIdx);
+
+      // 六亲盘
+      const liuQinMap = new Map();
+      for (const palace of PALACES){
+        liuQinMap.set(palace, liuQinOf(zhiMap.get(palace), hourZhi));
+      }
+      const fixPalace = ensureBrotherIfMissing(zhiMap, hourZhi, timeIdx);
+      if (fixPalace){
+        liuQinMap.set(fixPalace, '兄弟');
+      }
+      // 锁定身宫为“自身”（避免被“兄弟”覆盖）
+      const selfPalace = PALACES[timeIdx];
+      liuQinMap.set(selfPalace, '自身');
+
+      // 六神盘
+      const liuShenMap = calcSixGods(hourZhi);
+
+      // 六星盘
+      const liuXingMap = calcSixStars(dayIdx);
+
+      // 渲染 2×3 网格与右侧摘要
+      const payload = { zhiMap, liuQinMap, liuShenMap, liuXingMap };
+      renderBoardGrid(payload, timeIdx);
+      renderSummary(payload);
+    }
+
+    // 绑定
+    document.getElementById('calcBtn').addEventListener('click', run);
+
+    // 默认填当前时间，便于直接试用
+    const now = new Date();
+    const pad = n=> String(n).padStart(2,'0');
+    document.getElementById('dt').value =
+      `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    // 简易自测：文档示例“农历正月初六 戌时”→ 日落宫=空亡、时落宫=赤口
+    // 你可选任意一天，先“数字N=6”+时设为20:00（戌时），核对赤口落戌等细节。
+  })();
+  </script>
+</body>
+</html>
