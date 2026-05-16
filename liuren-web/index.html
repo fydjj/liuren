@@ -66,7 +66,11 @@
   .item { padding:8px; border:1px solid #283141; border-radius:8px; background:#0f141b;}
   .item h4 { margin:0 0 6px 0; font-size:14px; }
   .item .line { font-size:12px; color:var(--muted); }
-  .footer { padding:12px 16px; font-size:12px; color:var(--muted); text-align:center;}
+  .footer { padding:14px 16px; font-size:12px; color:var(--muted); text-align:center; border-top:1px solid #1f2630; }
+  .footer .meta { display:inline-flex; flex-direction:column; gap:4px; line-height:1.6; }
+  .footer a { color: var(--accent); text-decoration:none; }
+  .footer a:hover { text-decoration:underline; }
+  .footer .version { display:inline-block; padding:2px 8px; border:1px solid #283141; border-radius:999px; background:#0f141b; color:var(--fg); font-weight:600; }
   @media(min-width: 900px){
     .layout { display:grid; grid-template-columns: 1.2fr 1fr; gap:16px;}
   }
@@ -116,8 +120,11 @@
   </div>
 
   <div class="footer">
-    该网页由茯苓酱肉包提供  有问题请反馈至fy_djj@outlook.com<br/>
-    版本号V2
+    <div class="meta">
+      <div>有问题请邮箱反馈：<a href="mailto:fy_djj@outlook.com">fy_djj@outlook.com</a></div>
+      <div>版本号 <span class="version">V2</span></div>
+      <div>署名：茯苓酱肉包</div>
+    </div>
   </div>
 
   <script>
